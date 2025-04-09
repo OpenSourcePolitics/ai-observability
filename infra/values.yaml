@@ -1,38 +1,106 @@
-# This values.yaml file demonstrates how to use the basic chart with a single, pre-created secret.
-# Secrets must be set manually or via External Secrets Operator like https://external-secrets.io/latest or any other secret management tool.
-langfuse:
-  salt:
-    secretKeyRef:
-      name: langfuse
-      key: salt
+_shared:
+  namespace: &namespace langfuse
+  services:
+    web:
+      webUrl: &webUrl "https://CHANGE_ME"
+      webHost: &webHost "CHANGE_ME"
+      salt: &salt "CHANGE_ME"
+      nextAuthSecret: &nextAuthSecret "CHANGE_ME"
 
+    postgresql:
+      databaseUsername: &databaseUsername "CHANGE_ME"
+      databaseName: &databaseName "CHANGE_ME"
+      databaseHost: &databaseHost "CHANGE_ME" # svc name
+      databasePort: &databasePort "CHANGE_ME" # svc port
+      databaseDirectUrl: &databaseDirectUrl "CHANGE_ME" # direct url to the database (full url)
+      databaseSecretName: &databaseSecretName "CHANGE_ME" # secret name
+      databaseSecretPasswordKey: &databaseSecretPasswordKey "CHANGE_ME" # secret key for the password
+    clickhouse:
+      clickhouseSecretName: &clickhouseSecretName "CHANGE_ME" # secret name
+      clickhouseSecretPasswordKey: &clickhouseSecretPasswordKey "CHANGE_ME" # secret key for the password
+    redis:
+      redisHost: &redisHost "CHANGE_ME" # svc name
+      redisSecretName: &redisSecretName "CHANGE_ME" # secret name
+      redisSecretPasswordKey: &redisSecretPasswordKey "CHANGE_ME" # secret key for the password
+    s3:
+      bucketName: &bucketName "CHANGE_ME"
+      bucketRegion: &bucketRegion "fr-par-1"
+      bucketEndpoint: &bucketEndpoint "https://CHANGE_ME"
+      bucketAccessKeyId: &bucketAccessKeyId "CHANGE_ME"
+      bucketSecretAccessKey: &bucketSecretAccessKey "CHANGE_ME"
+
+langfuse:
+  features:
+    signUpDisabled: true
+  salt:
+    value: *salt
   nextauth:
     secret:
-      secretKeyRef:
-        name: langfuse
-        key: nextauth-secret
+      value: *nextAuthSecret
+    url: *webUrl
+  ingress:
+    enabled: true
+    className: nginx
+    tls:
+      enabled: true
+      secretName: langfuse-tls
+    hosts:
+      - host: *webHost
+        paths:
+          - path: /
+            pathType: Prefix
 
 postgresql:
   deploy: false
+  host: *databaseHost
+  directUrl: *databaseDirectUrl
+  port: *databasePort
   auth:
-    username: CHANGE_ME
-    database: CHANGE_ME
-    existingSecret: langfuse.langfuse--pg.credentials.postgresql.acid.zalan.do
+    username: *databaseUsername
+    database: *databaseName
+    existingSecret: *databaseSecretName
     secretKeys:
-      userPasswordKey: password
+      userPasswordKey: *databaseSecretPasswordKey
 
 clickhouse:
   auth:
-    existingSecret: langfuse
-    existingSecretKey: clickhouse-password
+    existingSecret: *clickhouseSecretName
+    existingSecretKey: *clickhouseSecretPasswordKey
 
 redis:
+  deploy: false
+  host: *redisHost
   auth:
-    existingSecret: langfuse
-    existingSecretPasswordKey: redis-password
+    existingSecret: *redisSecretName
+    existingSecretPasswordKey: *redisSecretPasswordKey
 
 s3:
-  auth:
-    existingSecret: langfuse
-    rootUserSecretKey: s3-user
-    rootPasswordSecretKey: s3-password
+  deploy: false
+  defaultBuckets: *bucketName
+  bucket: *bucketName
+  region: *bucketRegion
+  endpoint: *bucketEndpoint
+  forcePathStyle: true
+  accessKeyId:
+    value: *bucketAccessKeyId
+  secretAccessKey:
+    value: *bucketSecretAccessKey
+
+  eventUpload: &s3
+    defaultBuckets: *bucketName
+    bucket: *bucketName
+    region: *bucketRegion
+    endpoint: *bucketEndpoint
+    forcePathStyle: true
+    accessKeyId:
+      value: *bucketAccessKeyId
+    secretAccessKey:
+      value: *bucketSecretAccessKey
+
+  batchExport:
+    enabled: true
+    <<: *s3
+
+  mediaUpload:
+    enabled: true
+    <<: *s3
