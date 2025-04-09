@@ -1,0 +1,9 @@
+apiVersion: core.libre.sh/v1alpha1
+kind: Bucket
+metadata:
+  name: langfuse
+  namespace: langfuse
+spec:
+  policy:
+    preset: private
+  provider: data

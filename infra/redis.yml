@@ -1,0 +1,9 @@
+apiVersion: core.libre.sh/v1alpha1
+kind: Redis
+metadata:
+  name: CHANGE_ME
+  namespace: langfuse
+spec:
+  mode: Normal
+  persistence:
+    enabled: true
